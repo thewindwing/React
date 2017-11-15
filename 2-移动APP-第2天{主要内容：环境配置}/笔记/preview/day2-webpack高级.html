@@ -1,0 +1,191 @@
+<html>
+  <head>
+	  <meta http-equiv="content-type" content="text/html; charset=utf-8" />
+    <title>i5ting_ztree_toc:day2-webpack高级</title>
+		<link href="toc/style/github-bf51422f4bb36427d391e4b75a1daa083c2d840e.css" media="all" rel="stylesheet" type="text/css"/>
+		<link href="toc/style/github2-d731afd4f624c99a4b19ad69f3083cd6d02b81d5.css" media="all" rel="stylesheet" type="text/css"/>
+		<link href="toc/css/zTreeStyle/zTreeStyle.css" media="all" rel="stylesheet" type="text/css"/>
+	  <style>
+		pre {
+		    counter-reset: line-numbering;
+		    border: solid 1px #d9d9d9;
+		    border-radius: 0;
+		    background: #fff;
+		    padding: 0;
+		    line-height: 23px;
+		    margin-bottom: 30px;
+		    white-space: pre;
+		    overflow-x: auto;
+		    word-break: inherit;
+		    word-wrap: inherit;
+		}
+
+		pre a::before {
+		  content: counter(line-numbering);
+		  counter-increment: line-numbering;
+		  padding-right: 1em; /* space after numbers */
+		  width: 25px;
+		  text-align: right;
+		  opacity: 0.7;
+		  display: inline-block;
+		  color: #aaa;
+		  background: #eee;
+		  margin-right: 16px;
+		  padding: 2px 10px;
+		  font-size: 13px;
+		  -webkit-touch-callout: none;
+		  -webkit-user-select: none;
+		  -khtml-user-select: none;
+		  -moz-user-select: none;
+		  -ms-user-select: none;
+		  user-select: none;
+		}
+
+		pre a:first-of-type::before {
+		  padding-top: 10px;
+		}
+
+		pre a:last-of-type::before {
+		  padding-bottom: 10px;
+		}
+
+		pre a:only-of-type::before {
+		  padding: 10px;
+		}
+
+		.highlight { background-color: #ffffcc } /* RIGHT */
+		</style>
+  </head>
+  <body>
+	  <div>
+				<div style='width:25%;'>
+						<ul id="tree" class="ztree" style='width:100%'>
+
+						</ul>
+				</div>
+        <div id='readme' style='width:70%;margin-left:20%;'>
+          	<article class='markdown-body'>
+            	<h2 id="-app-2-">移动App第2天</h2>
+<h2 id="webpack-">webpack的发布策略</h2>
+<ol>
+<li>在实际开发中，一般会有两套项目方案：<ul>
+<li>一套是开发期间的项目，包含了测试文件、测试数据、开发工具、测试工具等相关配置，有利于项目的开发和测试，但是这些文件仅用于开发，发布项目时候需要剔除；</li>
+<li>另一套是部署期间的项目，剔除了那些客户用不到的测试数据测试工具和文件，比较纯净，减少了项目发布后的体积，有利于安装和部署！</li>
+</ul>
+</li>
+<li>为了满足我们的发布策略，需要新建一个配置文件，命名为<code>webpack.publish.config.js</code>，将<code>webpack.config.js</code>的配置拷贝过去，剔除一些开发配置项即可：<ul>
+<li>将<code>devServer</code>节点删掉：<pre><code>devServer: {
+   hot: true,
+   open: true,
+   port: 4321
+}
+</code></pre></li>
+<li>将<code>plugins</code>节点下的热更新插件删掉：<pre><code>new webpack.HotModuleReplacementPlugin()
+</code></pre></li>
+</ul>
+</li>
+<li>修改<code>url-loader</code>，将图片放入统一的images文件夹之下：<pre><code>{ test: /\.(png|jpg|gif)$/, use: &#39;url-loader?limit=43959&amp;name=images/[name].[ext]&#39; }
+</code></pre>或者使用<code>img-</code>前缀加上<code>7位的hash名称</code>：<pre><code>{ test: /\.(png|jpg|gif)$/, use: &#39;url-loader?limit=43959&amp;name=images/img-[hash:7].[ext]&#39; }
+</code></pre></li>
+<li>在<code>package.json</code>中的script节点下新增<code>dev</code>命令，通过<code>--config</code>指定webpack启动时要读取的配置文件：<pre><code>&quot;pub&quot;: &quot;webpack --config webpack.publish.config.js&quot;
+</code></pre></li>
+</ol>
+<h2 id="-dist-">每次重新构建时候删除dist目录</h2>
+<ol>
+<li>运行<code>cnpm i clean-webpack-plugin --save-dev</code></li>
+<li>在头部引入这个插件：<pre><code>var cleanWebpackPlugin = require(&#39;clean-webpack-plugin&#39;);
+</code></pre></li>
+<li>在<code>plugins</code>节点下使用这个插件：<pre><code>new cleanWebpackPlugin([&#39;dist&#39;])
+</code></pre></li>
+</ol>
+<h2 id="-webpack-publish-config-js-">分离第三方包改造<code>webpack.publish.config.js</code></h2>
+<ol>
+<li>改造entry节点如下：<pre><code>entry: {
+     app: path.resolve(__dirname, &#39;src/js/main.js&#39;), // 自己代码的入口
+     vendors: [&#39;jquery&#39;] // 要分离的第三方包的入口
+ }
+</code></pre></li>
+<li>在plugins节点下新增插件：<pre><code>new webpack.optimize.CommonsChunkPlugin({ // 抽离第三方包的插件
+     name:&#39;vendors&#39;, // 指定抽离第三方包的入口名称
+     filename:&#39;vendors.js&#39; // 抽离出的公共模块的名称
+})
+</code></pre></li>
+<li><code>html-webpack-plugin</code>在生成<code>index.html</code>文件的时候，会自动将抽离的第三方包引入进去！</li>
+</ol>
+<h2 id="-js-https-webpack-js-org-configuration-plugins-plugins-"><a href="https://webpack.js.org/configuration/plugins/#plugins">优化压缩JS</a></h2>
+<p>在plugins数组中添加：</p>
+<pre><code>new webpack.optimize.UglifyJsPlugin({ // 优化压缩JS
+    compress:{
+        warnings:false // 移除警告
+    }
+}),
+new webpack.DefinePlugin({ // 设置为产品上线环境，进一步压缩JS代码
+    &#39;process.env.NODE_ENV&#39;: &#39;&quot;production&quot;&#39;
+})
+</code></pre><h2 id="-html-">优化压缩HTML文件</h2>
+<p>在<code>plugins</code>节点下的<code>htmlWebpackPlugin</code>插件中，添加<code>minify</code>子节点：</p>
+<pre><code>minify:{// 压缩HTML代码
+    collapseWhitespace:true, // 合并空白字符
+    removeComments:true, // 移除注释
+    removeAttributeQuotes:true // 移除属性上的引号
+}
+</code></pre><p>其他优化项请参考：<a href="https://github.com/kangax/html-minifier#options-quick-reference">html-minifier - github</a></p>
+<h2 id="-css-https-github-com-webpack-contrib-extract-text-webpack-plugin-"><a href="https://github.com/webpack-contrib/extract-text-webpack-plugin">抽取CSS文件</a></h2>
+<ol>
+<li>运行<code>npm install --save-dev extract-text-webpack-plugin</code>安装抽取CSS文件的插件。</li>
+<li>在配置文件中导入插件：<pre><code>const ExtractTextPlugin = require(&quot;extract-text-webpack-plugin&quot;);
+</code></pre></li>
+<li>修改CSS和Sass的loader如下：<pre><code>{
+ test: /\.css$/, use: ExtractTextPlugin.extract({
+     fallback: &quot;style-loader&quot;,
+     use: [&quot;css-loader&quot;],
+     publicPath: &#39;../&#39; // 设置图片路径
+ })
+},
+{
+ test: /\.scss$/, use: ExtractTextPlugin.extract({
+     fallback: &quot;style-loader&quot;,
+     use: [&#39;css-loader&#39;, &#39;sass-loader&#39;],
+     publicPath: &#39;../&#39; // 设置图片路径
+ })
+}
+</code></pre></li>
+<li>在plugins节点下新增插件：<pre><code>new ExtractTextPlugin(&quot;css/styles.css&quot;), // 抽取CSS文件的插件
+</code></pre></li>
+</ol>
+<h2 id="-css-https-github-com-nmfr-optimize-css-assets-webpack-plugin-"><a href="https://github.com/NMFR/optimize-css-assets-webpack-plugin">压缩抽取出来的CSS文件</a></h2>
+<ol>
+<li>运行<code>cnpm i optimize-css-assets-webpack-plugin --save-dev</code>安装插件到开发依赖。</li>
+<li>在配置文件头部导入插件：<pre><code>var OptimizeCssAssetsPlugin = require(&#39;optimize-css-assets-webpack-plugin&#39;);
+</code></pre></li>
+<li>在plugins节点下新增插件：<pre><code>new OptimizeCssAssetsPlugin() // 压缩CSS文件的插件
+</code></pre></li>
+</ol>
+<h2 id="-">相关文章</h2>
+<ol>
+<li><a href="http://www.sasschina.com/guide/">Sass 基础教程</a></li>
+<li><a href="https://github.com/webpack/webpack-dev-server/releases">webpack-dev-server</a></li>
+<li><a href="http://majing.io/questions/804">You have not accepted the license agreements of the following </a></li>
+</ol>
+
+          	</article>
+        </div>
+		</div>
+  </body>
+</html>
+<script type="text/javascript" src="toc/js/jquery-1.4.4.min.js"></script>
+<script type="text/javascript" src="toc/js/jquery.ztree.all-3.5.min.js"></script>
+<script type="text/javascript" src="toc/js/ztree_toc.js"></script>
+<script type="text/javascript" src="toc_conf.js"></script>
+
+<SCRIPT type="text/javascript" >
+<!--
+$(document).ready(function(){
+    var css_conf = eval(markdown_panel_style);
+    $('#readme').css(css_conf)
+    
+    var conf = eval(jquery_ztree_toc_opts);
+		$('#tree').ztree_toc(conf);
+});
+//-->
+</SCRIPT>

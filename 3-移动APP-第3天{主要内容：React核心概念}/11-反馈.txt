@@ -1,0 +1,10 @@
+react-native一直打包报错，adb devices也连接上了，不知道怎么回事 
+Could not install the app on the device, 
+read the error above for details. 
+Make sure you have an Android emulator running 
+or a device connected and have set up your Android development environment: https://facebook.github.io/react-native/docs/android-setup.html
+1. 没有安装驱动
+2. 驱动安装好了，但是没有开启手机调试模式
+3. 开启手机调试了，但是没有信任这台电脑
+4. 可能你的手机是Oppo或Vivo
+5. 【小米手机一般都可以正常调试】
